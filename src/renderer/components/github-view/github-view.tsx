@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useGitPanel } from '../../hooks/use-git-panel'
 import { CollapsibleSection } from '../git-panel/collapsible-section'
 import { DiffModal } from '../git-panel/diff-modal'
@@ -11,7 +11,7 @@ import { PRsTab } from './prs-tab'
 import { CompactHeader } from './compact-header'
 import { GitHubAccountSection } from './github-account-section'
 import { BranchDiffFileList } from './branch-diff-file-list'
-import type { GitFileStatus, GitBranchDiffFile } from '@shared/types'
+import type { GitFileStatus, GitBranchDiffFile, GitStatus } from '@shared/types'
 
 interface DiffModalState {
   fileName: string
@@ -28,15 +28,28 @@ interface DiffModalState {
 
 interface GitHubPanelContentProps {
   projectPath: string | undefined
+  /**
+   * Rendered inside the multi-repo panel: grows to its content instead of
+   * owning a scroll area, and leaves the account section to the outer panel.
+   */
+  embedded?: boolean
+  /** Prefix for section open/closed storage keys, so each repo remembers its own */
+  sectionScope?: string
+  /** Called whenever this panel's polled git status changes */
+  onStatusChange?: (status: GitStatus | null) => void
 }
 
-export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
+export function GitHubPanelContent({ projectPath, embedded = false, sectionScope, onStatusChange }: GitHubPanelContentProps) {
   const [syncing, setSyncing] = useState(false)
   const [diffModal, setDiffModal] = useState<DiffModalState | null>(null)
   const [showStashInput, setShowStashInput] = useState(false)
   const diffRequestIdRef = useRef(0)
 
   const gitPanel = useGitPanel({ projectPath, enabled: true })
+
+  useEffect(() => { onStatusChange?.(gitPanel.gitStatus) }, [gitPanel.gitStatus, onStatusChange])
+
+  const sectionId = (id: string) => (sectionScope ? `${sectionScope}:${id}` : id)
 
   const stagedFiles = gitPanel.files.filter(f => f.staged)
   const unstagedFiles = gitPanel.files.filter(f => !f.staged)
@@ -124,7 +137,10 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--mc-bg-primary)]">
+    <div className={embedded
+      ? 'flex flex-col bg-[var(--mc-bg-primary)]'
+      : 'flex-1 flex flex-col overflow-hidden bg-[var(--mc-bg-primary)]'}
+    >
       {/* Compact header: branch selector + fetch/pull/push */}
       <CompactHeader
         currentBranch={gitPanel.currentBranch}
@@ -154,10 +170,10 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
       </div>
 
       {/* Scrollable sections */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className={embedded ? '' : 'flex-1 overflow-y-auto custom-scrollbar'}>
         {/* Staged */}
         <CollapsibleSection
-          id="staged"
+          id={sectionId('staged')}
           title="Staged Changes"
           count={stagedFiles.length}
           countColor="text-green-400"
@@ -176,7 +192,7 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
 
         {/* Unstaged */}
         <CollapsibleSection
-          id="unstaged"
+          id={sectionId('unstaged')}
           title="Changes"
           count={unstagedFiles.length}
           countColor="text-amber-400"
@@ -196,7 +212,7 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
 
         {/* Against base branch */}
         <CollapsibleSection
-          id="against"
+          id={sectionId('against')}
           title={`Against ${gitPanel.baseBranch}`}
           count={gitPanel.branchDiff?.files.length}
           defaultOpen={false}
@@ -209,7 +225,7 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
 
         {/* Commits */}
         <CollapsibleSection
-          id="commits"
+          id={sectionId('commits')}
           title="Commits"
           count={gitPanel.logEntries.length}
           defaultOpen={false}
@@ -218,18 +234,18 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
         </CollapsibleSection>
 
         {/* Issues */}
-        <CollapsibleSection id="issues" title="Issues" defaultOpen={false}>
+        <CollapsibleSection id={sectionId('issues')} title="Issues" defaultOpen={false}>
           <IssuesTab projectPath={projectPath} />
         </CollapsibleSection>
 
         {/* Pull Requests */}
-        <CollapsibleSection id="prs" title="Pull Requests" defaultOpen={false}>
+        <CollapsibleSection id={sectionId('prs')} title="Pull Requests" defaultOpen={false}>
           <PRsTab projectPath={projectPath} />
         </CollapsibleSection>
 
         {/* Stash */}
         <CollapsibleSection
-          id="stash"
+          id={sectionId('stash')}
           title="Stash"
           count={gitPanel.stashEntries.length}
           defaultOpen={false}
@@ -250,10 +266,12 @@ export function GitHubPanelContent({ projectPath }: GitHubPanelContentProps) {
       </div>
 
       {/* GitHub Account: auth status, git identity, login/logout */}
-      <GitHubAccountSection
-        currentBranch={gitPanel.currentBranch}
-        hasRemote={gitPanel.gitStatus?.hasRemote ?? false}
-      />
+      {!embedded && (
+        <GitHubAccountSection
+          currentBranch={gitPanel.currentBranch}
+          hasRemote={gitPanel.gitStatus?.hasRemote ?? false}
+        />
+      )}
 
       {/* Diff modal overlay */}
       <DiffModal

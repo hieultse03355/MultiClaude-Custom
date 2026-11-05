@@ -8,7 +8,7 @@ import { WelcomeScreen } from './components/welcome-screen'
 import { ToastContainer } from './components/toast-container'
 import { SettingsModal } from './components/settings'
 import { SlidePanel } from './components/slide-panel'
-import { GitHubPanelContent } from './components/github-view/github-view'
+import { MultiRepoGitPanel } from './components/github-view/multi-repo-git-panel'
 import { GitInitDialog, GitHubConnectDialog } from './components/github-setup'
 import { useAppStore, useNotificationStore, useSettingsStore, useToastStore, setupNotificationListener, setupUpdateListener, useContextWindowStore } from './stores'
 import { ContextWindowDrawer } from './components/context-window'
@@ -655,7 +655,7 @@ function App() {
         title=""
         headerExtra={<GitHubHeaderExtra projectPath={activeProject?.path} />}
       >
-        {activePanel === 'github' && <GitHubPanelContent projectPath={activeProject?.path} />}
+        {activePanel === 'github' && <MultiRepoGitPanel key={activeProject?.path ?? 'none'} projectPath={activeProject?.path} />}
       </SlidePanel>
 
       {/* Git Setup Dialogs */}

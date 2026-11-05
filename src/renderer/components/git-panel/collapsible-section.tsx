@@ -44,6 +44,11 @@ export function CollapsibleSection({
     }
   }, [isOpen, storageKey])
 
+  // Mount children only after the first open, so collapsed sections (e.g. Issues/PRs)
+  // don't fetch data up front; once mounted they stay mounted to keep the close animation
+  const [hasOpened, setHasOpened] = useState(isOpen)
+  useEffect(() => { if (isOpen) setHasOpened(true) }, [isOpen])
+
   const toggleOpen = () => setIsOpen(prev => !prev)
 
   return (
@@ -124,7 +129,7 @@ export function CollapsibleSection({
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
-          {children}
+          {hasOpened && children}
         </div>
       </div>
     </div>
