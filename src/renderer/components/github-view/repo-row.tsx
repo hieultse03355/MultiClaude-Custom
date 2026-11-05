@@ -99,6 +99,15 @@ export function RepoRow({ repoPath, isPrimary, onRemove, onStatus }: RepoRowProp
 
         <span className="flex-1" />
 
+        {!!status?.ahead && (
+          <span
+            className="text-[10px] font-semibold flex-shrink-0 text-sky-400"
+            title={`${status.ahead} commit(s) not pushed to ${status.tracking ?? 'remote'}`}
+          >
+            ↑{status.ahead}
+          </span>
+        )}
+
         {changeCount > 0 && (
           <span
             className="text-[10px] font-semibold px-1.5 rounded-full leading-[16px] flex-shrink-0 text-amber-400 bg-amber-400/10"

@@ -70,8 +70,11 @@ export function useGitPanel({ projectPath, enabled = true }: UseGitPanelOptions)
   const isRefreshingRef = useRef(false)
   // Last seen HEAD commit hash — skip heavy refreshAll fetches when unchanged
   const lastCommitHashRef = useRef<string | null>(null)
+  // Last seen "tracking:ahead" — when it changes (e.g. a push from the terminal),
+  // the log's pushed/local flags are stale even though HEAD did not move
+  const lastSyncKeyRef = useRef<string | null>(null)
 
-  // Refresh file status
+  // Refresh file status (polled every 5s)
   const refresh = useCallback(async () => {
     if (!projectPath || !enabled || isRefreshingRef.current) return
     isRefreshingRef.current = true
@@ -83,6 +86,12 @@ export function useGitPanel({ projectPath, enabled = true }: UseGitPanelOptions)
       ])
       setGitStatus(status)
       setFiles(fileStatus)
+
+      const syncKey = `${status.tracking ?? ''}:${status.ahead ?? 0}`
+      if (lastSyncKeyRef.current !== null && syncKey !== lastSyncKeyRef.current) {
+        setLogEntries(await window.electron.git.log(projectPath, 50))
+      }
+      lastSyncKeyRef.current = syncKey
     } finally {
       setIsLoading(false)
       isRefreshingRef.current = false
@@ -105,6 +114,9 @@ export function useGitPanel({ projectPath, enabled = true }: UseGitPanelOptions)
       ])
       setGitStatus(status)
       setFiles(fileStatus)
+      // Always refresh the log: pushed/local flags change without HEAD moving
+      setLogEntries(log)
+      lastSyncKeyRef.current = `${status.tracking ?? ''}:${status.ahead ?? 0}`
 
       const newHash = log[0]?.hash ?? null
       const firstRun = lastCommitHashRef.current === null
@@ -266,6 +278,7 @@ export function useGitPanel({ projectPath, enabled = true }: UseGitPanelOptions)
 
     // Reset last-commit cache so first refreshAll for this project always hydrates fully
     lastCommitHashRef.current = null
+    lastSyncKeyRef.current = null
     refreshAll()
     const interval = setInterval(refresh, 5000)
     return () => clearInterval(interval)

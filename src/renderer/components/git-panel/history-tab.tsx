@@ -46,6 +46,7 @@ export function HistoryTab({ entries, isLoading }: HistoryTabProps) {
         <div
           key={entry.hash}
           className="flex items-center gap-1.5 px-3 py-[3px] hover:bg-[var(--mc-bg-hover)] transition-colors cursor-pointer"
+          title={entry.pushed === undefined ? undefined : entry.pushed ? 'Pushed to remote' : 'Local only — not pushed'}
         >
           {/* Expand chevron */}
           <svg className="w-2.5 h-2.5 text-[var(--mc-text-muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,6 +54,15 @@ export function HistoryTab({ entries, isLoading }: HistoryTabProps) {
           </svg>
           {/* Short hash */}
           <span className="font-mono text-[10px] text-yellow-500 flex-shrink-0">{entry.hashShort}</span>
+          {/* Push state: "local" = not on any remote yet (no badge when the repo has no remote) */}
+          {entry.pushed === false && (
+            <span
+              className="text-[9px] font-semibold uppercase px-1 rounded leading-[14px] flex-shrink-0 text-amber-400 bg-amber-400/15"
+              title="Only in the local repo — not pushed to any remote yet"
+            >
+              local
+            </span>
+          )}
           {/* Commit message */}
           <span className="text-[10px] text-[var(--mc-text-primary)] truncate flex-1">{entry.message}</span>
           {/* Relative time */}

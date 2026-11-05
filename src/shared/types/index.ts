@@ -103,6 +103,10 @@ export interface GitStatus {
   staged: number
   unstaged: number
   untracked: number
+  /** Upstream branch this branch tracks, e.g. "origin/main" (none if not tracking) */
+  tracking?: string
+  /** Commits on this branch not yet on its upstream */
+  ahead?: number
 }
 
 export interface GitHubAuth {
@@ -168,6 +172,8 @@ export interface GitLogEntry {
   email: string
   date: string
   message: string
+  /** True if on any remote-tracking branch; undefined when the repo has no remote */
+  pushed?: boolean
 }
 
 export interface GitStashEntry {

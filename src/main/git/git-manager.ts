@@ -267,7 +267,9 @@ export class GitManager {
         isDirty: !status.isClean(),
         staged: status.staged.length,
         unstaged: status.modified.length + status.deleted.length,
-        untracked: status.not_added.length
+        untracked: status.not_added.length,
+        tracking: status.tracking || undefined,
+        ahead: status.ahead
       }
     } catch {
       return {
@@ -829,16 +831,34 @@ export class GitManager {
     const git = this.getGit(cwd)
     try {
       const log: LogResult<DefaultLogFields> = await git.log({ maxCount })
+      const unpushed = await this.getUnpushedHashes(cwd, maxCount)
       return log.all.map(entry => ({
         hash: entry.hash,
         hashShort: entry.hash.substring(0, 7),
         author: entry.author_name,
         email: entry.author_email,
         date: entry.date,
-        message: entry.message
+        message: entry.message,
+        pushed: unpushed ? !unpushed.has(entry.hash) : undefined
       }))
     } catch {
       return []
+    }
+  }
+
+  /**
+   * Hashes of recent HEAD commits not reachable from any remote-tracking branch
+   * (i.e. only local). Returns null when the repo has no remote at all.
+   */
+  private async getUnpushedHashes(cwd: string, maxCount: number): Promise<Set<string> | null> {
+    const git = this.getGit(cwd)
+    try {
+      const remotes = (await git.raw(['remote'])).trim()
+      if (!remotes) return null
+      const out = await git.raw(['rev-list', `--max-count=${maxCount}`, 'HEAD', '--not', '--remotes'])
+      return new Set(out.split('\n').map(l => l.trim()).filter(Boolean))
+    } catch {
+      return null
     }
   }
 
