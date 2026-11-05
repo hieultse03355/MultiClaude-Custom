@@ -17,6 +17,11 @@ autoUpdater.allowPrerelease = true
 
 let mainWindow: BrowserWindow | null = null
 let isDevMode = false
+/**
+ * Custom fork build: never check/download upstream releases, which would
+ * overwrite the fork's changes. Flip to false to re-enable auto-update.
+ */
+const UPDATES_DISABLED = true
 const installMode = getUpdateInstallMode()
 const isMacOS = installMode === 'open-installer'
 
@@ -254,6 +259,11 @@ export function initAutoUpdater(window: BrowserWindow) {
     return
   }
 
+  if (UPDATES_DISABLED) {
+    console.log('[AutoUpdater] Disabled in custom build')
+    return
+  }
+
   autoUpdater.on('checking-for-update', () => {
     console.log('[AutoUpdater] Checking for updates...')
     clearPendingMacInstaller()
@@ -327,6 +337,11 @@ export async function checkForUpdatesManually(): Promise<UpdateState> {
   // In dev mode, show appropriate message
   if (isDevMode) {
     setStatus('error', { error: 'Updates not available in development mode' })
+    return getUpdateState()
+  }
+
+  if (UPDATES_DISABLED) {
+    setStatus('error', { error: 'Auto-update is disabled in this custom build' })
     return getUpdateState()
   }
 
