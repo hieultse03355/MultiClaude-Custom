@@ -653,6 +653,7 @@ function App() {
         isOpen={activePanel === 'github'}
         onClose={() => setActivePanel(null)}
         title=""
+        resizeKey="github"
         headerExtra={<GitHubHeaderExtra projectPath={activeProject?.path} />}
       >
         {activePanel === 'github' && <MultiRepoGitPanel key={activeProject?.path ?? 'none'} projectPath={activeProject?.path} />}

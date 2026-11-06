@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSlidePanelResize } from './use-slide-panel-resize'
 
 interface SlidePanelProps {
   isOpen: boolean
@@ -7,10 +8,12 @@ interface SlidePanelProps {
   /** Optional extra content rendered in the header, between the title and close button */
   headerExtra?: React.ReactNode
   children: React.ReactNode
+  /** When set, the panel can be drag-resized and its size is remembered under this key */
+  resizeKey?: string
 }
 
 /** Generic slide panel that overlays from right (landscape) or bottom (portrait) */
-export function SlidePanel({ isOpen, onClose, title, headerExtra, children }: SlidePanelProps) {
+export function SlidePanel({ isOpen, onClose, title, headerExtra, children, resizeKey }: SlidePanelProps) {
   const [isPortrait, setIsPortrait] = useState(
     () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth
   )
@@ -31,15 +34,28 @@ export function SlidePanel({ isOpen, onClose, title, headerExtra, children }: Sl
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isOpen, onClose])
 
+  const resize = useSlidePanelResize(resizeKey, isPortrait)
+
   const dirClass = isPortrait ? 'slide-panel-bottom' : 'slide-panel-right'
   const openClass = isOpen ? 'slide-panel-open' : ''
 
   return (
     <div
-      className={`slide-panel ${dirClass} ${openClass}`}
+      className={`slide-panel ${dirClass} ${openClass}${resize.isResizing ? ' slide-panel-resizing' : ''}`}
       // visibility:hidden preserves child state (data, form state) when closed
-      style={{ visibility: isOpen ? 'visible' : 'hidden' }}
+      style={{
+        visibility: isOpen ? 'visible' : 'hidden',
+        ...(resize.size !== null ? (isPortrait ? { height: resize.size } : { width: resize.size }) : {})
+      }}
     >
+      {resizeKey && (
+        <div
+          className="slide-panel-resize-handle"
+          onPointerDown={resize.onPointerDown}
+          onDoubleClick={resize.onDoubleClick}
+          title="Drag to resize · double-click to reset"
+        />
+      )}
       <div className="slide-panel-header">
         <span className="slide-panel-title">{title}</span>
         {headerExtra && (
