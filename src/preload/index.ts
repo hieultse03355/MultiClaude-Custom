@@ -14,6 +14,7 @@ import type {
   GitStashEntry,
   GitOperationResult,
   GitBranchDiff,
+  GitBranchDiffFile,
   AppSession,
   AppSettings,
   NotificationSettings,
@@ -103,6 +104,9 @@ export interface ElectronAPI {
     // Branch diff comparison
     diffBranch: (cwd: string, baseBranch?: string) => Promise<GitBranchDiff>
     diffAgainstBranch: (cwd: string, file: string, baseBranch: string, oldFile?: string) => Promise<GitDiffResult>
+    // Single-commit inspection (commit list → changed files → diff)
+    commitFiles: (cwd: string, hash: string) => Promise<GitBranchDiffFile[]>
+    commitFileDiff: (cwd: string, hash: string, file: string, oldFile?: string) => Promise<GitDiffResult>
     // Branch change event listener (from terminal git commands or file watcher)
     onBranchChanged: (callback: (data: { projectPath: string }) => void) => () => void
     // Watch project for external git changes
@@ -331,6 +335,8 @@ const api: ElectronAPI = {
     // Branch diff comparison
     diffBranch: (cwd, baseBranch) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DIFF_BRANCH, { cwd, baseBranch }),
     diffAgainstBranch: (cwd, file, baseBranch, oldFile) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DIFF_AGAINST_BRANCH, { cwd, file, baseBranch, oldFile }),
+    commitFiles: (cwd, hash) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_FILES, { cwd, hash }),
+    commitFileDiff: (cwd, hash, file, oldFile) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_FILE_DIFF, { cwd, hash, file, oldFile }),
     // Branch change event listener (from terminal git commands or file watcher)
     onBranchChanged: (callback) => {
       const listener = (_: unknown, data: { projectPath: string }) => callback(data)

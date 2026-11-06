@@ -4,13 +4,15 @@ import { getStatusColor, getStatusLabel, groupByDir } from '../git-panel/git-fil
 interface BranchDiffFileListProps {
   files: GitBranchDiffFile[]
   onFileClick: (file: GitBranchDiffFile) => void
+  /** Shown when the list is empty */
+  emptyText?: string
 }
 
-export function BranchDiffFileList({ files, onFileClick }: BranchDiffFileListProps) {
+export function BranchDiffFileList({ files, onFileClick, emptyText = 'No differences from base branch' }: BranchDiffFileListProps) {
   if (files.length === 0) {
     return (
       <div className="px-4 py-2 text-[10px] text-[var(--mc-text-muted)] opacity-50 italic">
-        No differences from base branch
+        {emptyText}
       </div>
     )
   }

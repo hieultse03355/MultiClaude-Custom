@@ -487,6 +487,14 @@ export function registerIpcHandlers(window: BrowserWindow, managers: Managers) {
     return gitManager.getDiffAgainstBranch(cwd, file, baseBranch, oldFile)
   })
 
+  safeHandle(IPC_CHANNELS.GIT_COMMIT_FILES, async (_, { cwd, hash }: { cwd: string; hash: string }) => {
+    return gitManager.getCommitFiles(cwd, hash)
+  })
+
+  safeHandle(IPC_CHANNELS.GIT_COMMIT_FILE_DIFF, async (_, { cwd, hash, file, oldFile }: { cwd: string; hash: string; file: string; oldFile?: string }) => {
+    return gitManager.getCommitFileDiff(cwd, hash, file, oldFile)
+  })
+
   safeHandle(IPC_CHANNELS.GIT_CONFIG_SET, async (_, config: { userName?: string; userEmail?: string }) => {
     return gitManager.setGitConfig(config)
   })

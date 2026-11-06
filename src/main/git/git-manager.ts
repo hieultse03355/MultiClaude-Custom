@@ -20,6 +20,9 @@ import type {
 // Valid branch name pattern (alphanumeric, -, _, /, .)
 const VALID_BRANCH_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/
 
+// Full or abbreviated commit hash
+const VALID_COMMIT_HASH_REGEX = /^[0-9a-f]{4,40}$/i
+
 // Resolve gh CLI path — Electron doesn't inherit shell PATH on macOS
 function resolveGhPath(): string {
   const candidates = [
@@ -531,6 +534,40 @@ export class GitManager {
     }
   }
 
+  /**
+   * Combine `--name-status` and `--numstat` output into a changed-file list
+   * (status, rename source, +/- line counts).
+   */
+  private buildChangedFiles(nameStatusRaw: string, numstatRaw: string): GitBranchDiffFile[] {
+    const statusMap = new Map<string, { status: GitBranchDiffFile['status']; oldPath?: string }>()
+    for (const line of nameStatusRaw.split('\n')) {
+      const renameMatch = line.match(/^R\d*\t(.+)\t(.+)$/)
+      if (renameMatch) {
+        statusMap.set(renameMatch[2], { status: 'renamed', oldPath: renameMatch[1] })
+        continue
+      }
+      const match = line.match(/^([ADM])\t(.+)$/)
+      if (!match) continue
+
+      const fileStatus: GitBranchDiffFile['status'] =
+        match[1] === 'A' ? 'added' :
+        match[1] === 'D' ? 'deleted' : 'modified'
+      statusMap.set(match[2], { status: fileStatus })
+    }
+
+    const numstatMap = this.parseNumstat(numstatRaw)
+    return Array.from(statusMap.entries()).map(([path, info]) => {
+      const stats = numstatMap.get(path)
+      return {
+        path,
+        status: info.status,
+        oldPath: info.oldPath ?? stats?.oldPath,
+        additions: stats?.additions ?? 0,
+        deletions: stats?.deletions ?? 0
+      }
+    })
+  }
+
   async diffBranch(cwd: string, baseBranch?: string): Promise<GitBranchDiff> {
     const git = this.getGit(cwd)
     try {
@@ -552,33 +589,7 @@ export class GitManager {
         git.raw(['diff', '--name-status', `${baseBranch}...${current}`]),
         git.diff(['--numstat', `${baseBranch}...${current}`])
       ])
-      const statusMap = new Map<string, { status: GitBranchDiffFile['status']; oldPath?: string }>()
-      for (const line of nameStatusRaw.split('\n')) {
-        const renameMatch = line.match(/^R\d*\t(.+)\t(.+)$/)
-        if (renameMatch) {
-          statusMap.set(renameMatch[2], { status: 'renamed', oldPath: renameMatch[1] })
-          continue
-        }
-        const match = line.match(/^([ADM])\t(.+)$/)
-        if (!match) continue
-
-        const fileStatus: GitBranchDiffFile['status'] =
-          match[1] === 'A' ? 'added' :
-          match[1] === 'D' ? 'deleted' : 'modified'
-        statusMap.set(match[2], { status: fileStatus })
-      }
-
-      const numstatMap = this.parseNumstat(numstatRaw)
-      const files: GitBranchDiffFile[] = Array.from(statusMap.entries()).map(([path, info]) => {
-        const stats = numstatMap.get(path)
-        return {
-          path,
-          status: info.status,
-          oldPath: info.oldPath ?? stats?.oldPath,
-          additions: stats?.additions ?? 0,
-          deletions: stats?.deletions ?? 0
-        }
-      })
+      const files = this.buildChangedFiles(nameStatusRaw, numstatRaw)
 
       // Get ahead/behind counts
       const [aheadLog, behindLog] = await Promise.all([
@@ -843,6 +854,55 @@ export class GitManager {
       }))
     } catch {
       return []
+    }
+  }
+
+  /**
+   * Files changed by one commit. Merge commits are diffed against their first
+   * parent; the root commit against the empty tree.
+   */
+  async getCommitFiles(cwd: string, hash: string): Promise<GitBranchDiffFile[]> {
+    if (!VALID_COMMIT_HASH_REGEX.test(hash)) return []
+    const git = this.getGit(cwd)
+    try {
+      const range = await this.commitDiffRange(git, hash)
+      const base = ['diff-tree', '-r', '--find-renames']
+      const [nameStatusRaw, numstatRaw] = await Promise.all([
+        git.raw([...base, '--name-status', ...range]),
+        git.raw([...base, '--numstat', ...range])
+      ])
+      return this.buildChangedFiles(nameStatusRaw, numstatRaw)
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * diff-tree arguments comparing a commit with its first parent
+   * (`<hash>^1 <hash>`), or with the empty tree for a root commit.
+   */
+  private async commitDiffRange(git: SimpleGit, hash: string): Promise<string[]> {
+    // `rev-list --parents` prints "<hash> <parent1> [<parent2>...]"; root has no parent
+    const line = (await git.raw(['rev-list', '--parents', '-n', '1', hash])).trim()
+    const firstParent = line.split(/\s+/)[1]
+    return firstParent ? [firstParent, hash] : ['--root', '--no-commit-id', hash]
+  }
+
+  /** Patch of one file as changed by one commit (same parent rules as getCommitFiles) */
+  async getCommitFileDiff(cwd: string, hash: string, file: string, oldFile?: string): Promise<GitDiffResult> {
+    if (!VALID_COMMIT_HASH_REGEX.test(hash)) return { success: false, error: 'Invalid commit hash' }
+    if (!this.isValidFilePath(cwd, file)) return { success: false, error: 'Invalid file path' }
+    if (oldFile && !this.isValidFilePath(cwd, oldFile)) return { success: false, error: 'Invalid file path' }
+    const git = this.getGit(cwd)
+    try {
+      const range = await this.commitDiffRange(git, hash)
+      const diff = await git.raw(['diff-tree', ...this.buildDiffArgs(['-p', ...range], file, oldFile)])
+      return { success: true, diff }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Commit diff failed'
+      }
     }
   }
 

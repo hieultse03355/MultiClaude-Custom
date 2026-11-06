@@ -69,6 +69,8 @@ export const IPC_CHANNELS = {
   GIT_CONFIG_SET: 'git:config-set',
   GIT_DIFF_BRANCH: 'git:diff-branch',
   GIT_DIFF_AGAINST_BRANCH: 'git:diff-against-branch',
+  GIT_COMMIT_FILES: 'git:commit-files',
+  GIT_COMMIT_FILE_DIFF: 'git:commit-file-diff',
 
   // GitHub channels
   GITHUB_AUTH_STATUS: 'github:auth-status',

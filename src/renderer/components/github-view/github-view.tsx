@@ -11,7 +11,7 @@ import { PRsTab } from './prs-tab'
 import { CompactHeader } from './compact-header'
 import { GitHubAccountSection } from './github-account-section'
 import { BranchDiffFileList } from './branch-diff-file-list'
-import type { GitFileStatus, GitBranchDiffFile, GitStatus } from '@shared/types'
+import type { GitFileStatus, GitBranchDiffFile, GitStatus, GitLogEntry } from '@shared/types'
 
 interface DiffModalState {
   fileName: string
@@ -113,6 +113,33 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
       error: result.success ? undefined : (result.error || 'Failed to load diff')
     })
   }, [projectPath, gitPanel.baseBranch])
+
+  // Open diff modal for a file as changed by one commit (from the Commits list)
+  const openCommitFileDiff = useCallback(async (entry: GitLogEntry, file: GitBranchDiffFile) => {
+    if (!projectPath) return
+    const requestId = ++diffRequestIdRef.current
+    const modalBase: DiffModalState = {
+      fileName: file.path,
+      oldFileName: file.oldPath,
+      fileStatus: file.status,
+      additions: file.additions,
+      deletions: file.deletions,
+      diff: '',
+      isLoading: true,
+      sourceLabel: `Commit ${entry.hashShort}`
+    }
+    setDiffModal(modalBase)
+
+    const result = await window.electron.git.commitFileDiff(projectPath, entry.hash, file.path, file.oldPath)
+    if (diffRequestIdRef.current !== requestId) return
+
+    setDiffModal({
+      ...modalBase,
+      diff: result.success ? result.diff || '' : '',
+      isLoading: false,
+      error: result.success ? undefined : (result.error || 'Failed to load diff')
+    })
+  }, [projectPath])
 
   const handlePush = async () => { setSyncing(true); try { await gitPanel.push() } finally { setSyncing(false) } }
   const handlePull = async () => { setSyncing(true); try { await gitPanel.pull() } finally { setSyncing(false) } }
@@ -230,7 +257,12 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
           count={gitPanel.logEntries.length}
           defaultOpen={false}
         >
-          <HistoryTab entries={gitPanel.logEntries} isLoading={gitPanel.isLoading} />
+          <HistoryTab
+            projectPath={projectPath}
+            entries={gitPanel.logEntries}
+            isLoading={gitPanel.isLoading}
+            onFileClick={openCommitFileDiff}
+          />
         </CollapsibleSection>
 
         {/* Issues */}

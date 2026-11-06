@@ -71,7 +71,8 @@ export function StashTab({
       )}
 
       {/* Stash list */}
-      {isLoading ? (
+      {/* Placeholder only on first load — background polls keep the list (no flicker) */}
+      {isLoading && entries.length === 0 ? (
         <div className="px-3 py-3 text-xs text-[var(--mc-text-muted)] text-center">
           Loading stashes...
         </div>
