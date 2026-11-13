@@ -17,5 +17,8 @@ export const CATEGORY_META: Record<ContextCategory, CategoryMeta> = {
   'user-messages': { label: 'User messages', color: 'var(--accent-pink, #f472b6)', order: 6 }
 }
 
-/** Warn when total tokens cross this threshold (approximate 1M-ctx usage). */
-export const CONTEXT_WARNING_THRESHOLD = 200_000
+/** Context window size the usage percentage is measured against. */
+export const CONTEXT_LIMIT = 1_000_000
+
+/** Warn when total tokens cross 80% of the context window. */
+export const CONTEXT_WARNING_THRESHOLD = CONTEXT_LIMIT * 0.8

@@ -2810,12 +2810,41 @@ button, input, select, textarea, optgroup, option {
 
 .context-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
   border-radius: 6px;
   background: var(--panel-secondary, rgba(255,255,255,0.03));
+}
+
+.context-header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.context-header-pct {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #888);
+}
+
+.context-header-meter {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-subtle, rgba(255,255,255,0.08));
+  overflow: hidden;
+}
+
+.context-header-meter-fill {
+  height: 100%;
+  background: var(--accent-blue, #60a5fa);
+  transition: width 0.3s ease;
+}
+
+.context-header-warn .context-header-meter-fill {
+  background: #fb923c;
 }
 
 .context-header-warn {
