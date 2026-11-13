@@ -1098,6 +1098,11 @@ button, input, select, textarea, optgroup, option {
   transition: width 0.3s ease;
 }
 
+.context-usage-bar-model {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .context-usage-bar-warn {
   color: #fb923c;
 }

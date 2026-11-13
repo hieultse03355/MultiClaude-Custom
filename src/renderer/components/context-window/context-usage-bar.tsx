@@ -2,7 +2,13 @@ import { memo } from 'react'
 import { formatTokens } from '@shared/utils/format-tokens'
 import { useAppStore, useContextWindowStore } from '../../stores'
 import { useContextSnapshot } from '../../hooks/use-context-snapshot'
-import { CONTEXT_LIMIT, CONTEXT_WARNING_THRESHOLD, getContextUsagePct } from './context-category-meta'
+import {
+  CONTEXT_LIMIT,
+  CONTEXT_WARNING_THRESHOLD,
+  formatModelName,
+  getContextUsagePct,
+  getContextUsedTokens
+} from './context-category-meta'
 
 interface Props {
   terminalId: string
@@ -16,9 +22,9 @@ function ContextUsageBarImpl({ terminalId }: Props) {
   const { snapshot } = useContextSnapshot(sessionId)
   if (!snapshot) return null
 
-  const total = snapshot.total
-  const pct = getContextUsagePct(total)
-  const warning = total > CONTEXT_WARNING_THRESHOLD
+  const used = getContextUsedTokens(snapshot)
+  const pct = getContextUsagePct(used)
+  const warning = used > CONTEXT_WARNING_THRESHOLD
 
   return (
     <button
@@ -32,8 +38,15 @@ function ContextUsageBarImpl({ terminalId }: Props) {
         <span className="context-usage-bar-fill" style={{ width: `${pct}%` }} />
       </span>
       <span className="context-usage-bar-value">
-        {pct}% · {formatTokens(total)} / {formatTokens(CONTEXT_LIMIT)}
+        {pct}% · {formatTokens(used)} / {formatTokens(CONTEXT_LIMIT)}
       </span>
+      {(snapshot.model || snapshot.effort) && (
+        <span className="context-usage-bar-model" title={snapshot.model}>
+          {[snapshot.model && formatModelName(snapshot.model), snapshot.effort]
+            .filter(Boolean)
+            .join(' · ')}
+        </span>
+      )}
     </button>
   )
 }

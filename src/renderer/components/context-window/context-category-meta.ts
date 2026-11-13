@@ -27,3 +27,18 @@ export const CONTEXT_WARNING_THRESHOLD = CONTEXT_LIMIT * 0.8
 export function getContextUsagePct(total: number): number {
   return Math.min(100, Math.round((total / CONTEXT_LIMIT) * 100))
 }
+
+/**
+ * Tokens to measure against the window: the API-reported usage when known,
+ * else the categorized estimate (which omits system prompt and tools).
+ */
+export function getContextUsedTokens(snapshot: { usedTokens?: number; total: number }): number {
+  return snapshot.usedTokens ?? snapshot.total
+}
+
+/** Short display name for a model id: `claude-opus-5-5` → `Opus 5.5`. */
+export function formatModelName(model: string): string {
+  const m = /^claude-([a-z]+)-(\d+(?:-\d+)*?)(?:-\d{8})?$/.exec(model)
+  if (!m) return model
+  return `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, '.')}`
+}

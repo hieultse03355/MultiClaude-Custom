@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { SlidePanel } from '../slide-panel'
 import { useAppStore, useContextWindowStore, useSettingsStore } from '../../stores'
 import { useContextSnapshot } from '../../hooks/use-context-snapshot'
-import { CATEGORY_META } from './context-category-meta'
+import { CATEGORY_META, getContextUsedTokens } from './context-category-meta'
 import { ContextCategoryRow } from './context-category-row'
 import { ContextWindowHeader } from './context-window-header'
 import { PaneSwitcherHeader } from './pane-switcher-header'
@@ -73,7 +73,7 @@ export function ContextWindowDrawer() {
           </div>
         ) : (
           <>
-            <ContextWindowHeader total={total} sessionId={activeSessionId} />
+            <ContextWindowHeader total={getContextUsedTokens(snap)} sessionId={activeSessionId} />
             <div className="context-rows" role="list">
               {rows.map((r) => (
                 <ContextCategoryRow

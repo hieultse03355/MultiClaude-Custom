@@ -36,6 +36,15 @@ export interface ContextSnapshot {
   cwd?: string
   buckets: Record<ContextCategory, CategoryBucket>
   total: number
+  /**
+   * Tokens actually occupying the context window, from the latest main-thread
+   * assistant `usage`. Undefined until the session has an assistant reply.
+   */
+  usedTokens?: number
+  /** Model id of the latest main-thread assistant reply, e.g. `claude-opus-5-5`. */
+  model?: string
+  /** Effort level of the latest main-thread assistant reply, e.g. `medium`. */
+  effort?: string
   updatedAt: number
   /**
    * Last N=50 per-turn delta summaries. Populated only when the analyzer's

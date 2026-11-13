@@ -14,6 +14,7 @@ import { TurnDeltaTracker } from './turn-delta-tracker'
 import { ExecutionTraceBuilder } from './execution-trace-builder'
 import { CompactionDetector } from './compaction-detector'
 import { ThinkingExtractor } from './thinking-extractor'
+import { readLastUsage, usageFromLine, type LineUsage } from './context-usage'
 
 const DEBOUNCE_MS = 300
 const TTL_MS = 60 * 60 * 1000 // 1h idle → drop
@@ -68,6 +69,12 @@ function isUserTextLine(line: unknown): boolean {
   return false
 }
 
+function applyUsage(snapshot: ContextSnapshot, usage: LineUsage): void {
+  snapshot.usedTokens = usage.tokens
+  if (usage.model) snapshot.model = usage.model
+  if (usage.effort) snapshot.effort = usage.effort
+}
+
 /** Minimal EventEmitter-shaped source the analyzer subscribes to. */
 export interface JsonlLineSource {
   on(event: 'jsonlLine', listener: (ev: JsonlLineEvent) => void): unknown
@@ -117,6 +124,9 @@ export class ContextWindowAnalyzer extends EventEmitter {
     if (!state) {
       state = this.createSession(sessionId, cwd)
       this.sessions.set(sessionId, state)
+      // The watcher skips history written before app start; seed usage from it.
+      const seeded = readLastUsage(ev.filePath)
+      if (seeded) applyUsage(state.snapshot, seeded)
       // Kick off async CLAUDE.md load on first line
       void this.loadClaudeMd(sessionId, cwd)
     }
@@ -136,6 +146,12 @@ export class ContextWindowAnalyzer extends EventEmitter {
       // Compaction signals run on every line, even when no category hits
       // (summary lines carry zero hits but ARE the explicit signal).
       const compactEvent = state.compactionDetector.recordLine(shapedLine as object)
+      const usage = usageFromLine(shapedLine)
+      if (usage) {
+        applyUsage(state.snapshot, usage)
+        state.snapshot.updatedAt = Date.now()
+        this.scheduleEmit(state)
+      }
       const hits = categorizeLine(shapedLine, state.detector, state.registry)
       if (hits.length === 0 && !compactEvent) return
       for (const h of hits) {
