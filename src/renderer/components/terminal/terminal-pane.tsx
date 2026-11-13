@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, memo, useState, useMemo } from 'react'
 import { TerminalView, type TerminalRefreshHandle } from './terminal-view'
 import { AttachmentStrip } from './attachment-strip'
+import { ContextUsageBar } from '../context-window/context-usage-bar'
 import { useFileDrop } from '../../hooks/use-file-drop'
 import { clearPendingDropTerminal, setPendingDropTerminal } from '../../utils/file-drop-handler'
 import { useAppStore } from '../../stores'
@@ -282,6 +283,9 @@ export const TerminalPane = memo(function TerminalPane({
           onRefreshReady={handleTerminalRefresh}
         />
       </div>
+
+      {/* Context usage footer — hidden until the pane's Claude session reports a snapshot */}
+      <ContextUsageBar terminalId={terminalId} />
 
       {/* Attachment thumbnail strip — hidden when no entries */}
       <AttachmentStrip terminalId={terminalId} onRemove={handleAttachmentRemoveClick} />

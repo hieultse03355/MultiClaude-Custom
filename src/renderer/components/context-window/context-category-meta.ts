@@ -22,3 +22,8 @@ export const CONTEXT_LIMIT = 1_000_000
 
 /** Warn when total tokens cross 80% of the context window. */
 export const CONTEXT_WARNING_THRESHOLD = CONTEXT_LIMIT * 0.8
+
+/** Share of {@link CONTEXT_LIMIT} used, as a whole percentage capped at 100. */
+export function getContextUsagePct(total: number): number {
+  return Math.min(100, Math.round((total / CONTEXT_LIMIT) * 100))
+}

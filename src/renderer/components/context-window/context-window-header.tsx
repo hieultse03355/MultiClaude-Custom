@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { formatTokens } from '@shared/utils/format-tokens'
-import { CONTEXT_LIMIT, CONTEXT_WARNING_THRESHOLD } from './context-category-meta'
+import { CONTEXT_LIMIT, CONTEXT_WARNING_THRESHOLD, getContextUsagePct } from './context-category-meta'
 
 interface Props {
   total: number
@@ -10,7 +10,7 @@ interface Props {
 function ContextWindowHeaderImpl({ total, sessionId }: Props) {
   const warning = total > CONTEXT_WARNING_THRESHOLD
   const sidShort = sessionId ? sessionId.slice(0, 8) : '—'
-  const pct = Math.min(100, Math.round((total / CONTEXT_LIMIT) * 100))
+  const pct = getContextUsagePct(total)
   return (
     <div className={`context-header${warning ? ' context-header-warn' : ''}`}>
       <div className="context-header-main">
