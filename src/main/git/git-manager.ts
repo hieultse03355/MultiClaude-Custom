@@ -54,6 +54,21 @@ export class GitManager {
     return !relPath.startsWith('..') && !relPath.startsWith('/') && relPath.length > 0
   }
 
+  /**
+   * Absolute path of a repo-relative file, or null when it escapes the repo or
+   * no longer exists (e.g. deleted later than the commit that listed it).
+   */
+  async resolveWorkingFile(cwd: string, file: string): Promise<string | null> {
+    if (!this.isValidFilePath(cwd, file)) return null
+    const absPath = resolve(cwd, file)
+    try {
+      await stat(absPath)
+      return absPath
+    } catch {
+      return null
+    }
+  }
+
   // Validate branch name to prevent injection
   private isValidBranchName(name: string): boolean {
     return VALID_BRANCH_REGEX.test(name) && name.length <= 255 && !name.startsWith('-')
@@ -272,7 +287,8 @@ export class GitManager {
         unstaged: status.modified.length + status.deleted.length,
         untracked: status.not_added.length,
         tracking: status.tracking || undefined,
-        ahead: status.ahead
+        ahead: status.ahead,
+        behind: status.behind
       }
     } catch {
       return {

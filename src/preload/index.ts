@@ -107,6 +107,8 @@ export interface ElectronAPI {
     // Single-commit inspection (commit list → changed files → diff)
     commitFiles: (cwd: string, hash: string) => Promise<GitBranchDiffFile[]>
     commitFileDiff: (cwd: string, hash: string, file: string, oldFile?: string) => Promise<GitDiffResult>
+    // Open a repo-relative file (default app) or reveal it in Finder/Explorer
+    openFile: (cwd: string, file: string, reveal?: boolean) => Promise<GitOperationResult>
     // Branch change event listener (from terminal git commands or file watcher)
     onBranchChanged: (callback: (data: { projectPath: string }) => void) => () => void
     // Watch project for external git changes
@@ -337,6 +339,7 @@ const api: ElectronAPI = {
     diffAgainstBranch: (cwd, file, baseBranch, oldFile) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DIFF_AGAINST_BRANCH, { cwd, file, baseBranch, oldFile }),
     commitFiles: (cwd, hash) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_FILES, { cwd, hash }),
     commitFileDiff: (cwd, hash, file, oldFile) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_FILE_DIFF, { cwd, hash, file, oldFile }),
+    openFile: (cwd, file, reveal) => ipcRenderer.invoke(IPC_CHANNELS.GIT_OPEN_FILE, { cwd, file, reveal }),
     // Branch change event listener (from terminal git commands or file watcher)
     onBranchChanged: (callback) => {
       const listener = (_: unknown, data: { projectPath: string }) => callback(data)

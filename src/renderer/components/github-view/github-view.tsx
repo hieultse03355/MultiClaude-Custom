@@ -11,6 +11,8 @@ import { PRsTab } from './prs-tab'
 import { CompactHeader } from './compact-header'
 import { GitHubAccountSection } from './github-account-section'
 import { BranchDiffFileList } from './branch-diff-file-list'
+import { RemoteBehindBanner } from './remote-behind-banner'
+import { useToastStore } from '../../stores'
 import type { GitFileStatus, GitBranchDiffFile, GitStatus, GitLogEntry } from '@shared/types'
 
 interface DiffModalState {
@@ -142,7 +144,23 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
   }, [projectPath])
 
   const handlePush = async () => { setSyncing(true); try { await gitPanel.push() } finally { setSyncing(false) } }
-  const handlePull = async () => { setSyncing(true); try { await gitPanel.pull() } finally { setSyncing(false) } }
+  const handlePull = async () => {
+    setSyncing(true)
+    try {
+      const result = await gitPanel.pull()
+      if (result.success) useToastStore.getState().addToast(`Pull: ${result.message ?? 'done'}`)
+      else useToastStore.getState().addToast(`Pull failed: ${result.error ?? 'unknown error'}`, 'error')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // Open a repo file with its default app, or reveal it in Finder/Explorer
+  const openFile = useCallback(async (path: string, reveal: boolean) => {
+    if (!projectPath) return
+    const result = await window.electron.git.openFile(projectPath, path, reveal)
+    if (!result.success) useToastStore.getState().addToast(result.error ?? `Cannot open ${path}`, 'error')
+  }, [projectPath])
   const handleFetch = async () => { setSyncing(true); try { await gitPanel.fetch() } finally { setSyncing(false) } }
 
   const handleCommitAndPush = async (message: string): Promise<boolean> => {
@@ -182,6 +200,15 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
         onPush={handlePush}
       />
 
+      {/* Remote has new commits → offer a pull */}
+      <RemoteBehindBanner
+        behind={gitPanel.gitStatus?.behind ?? 0}
+        tracking={gitPanel.gitStatus?.tracking}
+        ahead={gitPanel.gitStatus?.ahead ?? 0}
+        syncing={syncing}
+        onPull={handlePull}
+      />
+
       {/* Commit form */}
       <CommitForm
         stagedCount={stagedFiles.length}
@@ -214,6 +241,7 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
             mode="staged"
             onFileClick={openFileDiff}
             onUnstageFile={gitPanel.unstageFile}
+            onOpenFile={openFile}
           />
         </CollapsibleSection>
 
@@ -234,6 +262,7 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
             onFileClick={openFileDiff}
             onStageFile={gitPanel.stageFile}
             onDiscardFile={gitPanel.discardFile}
+            onOpenFile={openFile}
           />
         </CollapsibleSection>
 
@@ -247,6 +276,7 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
           <BranchDiffFileList
             files={gitPanel.branchDiff?.files ?? []}
             onFileClick={openBranchFileDiff}
+            onOpenFile={openFile}
           />
         </CollapsibleSection>
 
@@ -262,6 +292,7 @@ export function GitHubPanelContent({ projectPath, embedded = false, sectionScope
             entries={gitPanel.logEntries}
             isLoading={gitPanel.isLoading}
             onFileClick={openCommitFileDiff}
+            onOpenFile={openFile}
           />
         </CollapsibleSection>
 

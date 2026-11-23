@@ -1,5 +1,6 @@
 import type { GitFileStatus } from '@shared/types'
 import { getStatusColor, getStatusLabel, groupByDir } from './git-file-utils'
+import { FileOpenButtons } from './file-open-buttons'
 
 interface ChangesListProps {
   files: GitFileStatus[]
@@ -8,6 +9,8 @@ interface ChangesListProps {
   onStageFile?: (path: string) => void
   onUnstageFile?: (path: string) => void
   onDiscardFile?: (path: string) => void
+  /** Open the file itself (or reveal it in Finder) instead of its diff */
+  onOpenFile?: (path: string, reveal: boolean) => void
 }
 
 export function ChangesList({
@@ -16,7 +19,8 @@ export function ChangesList({
   onFileClick,
   onStageFile,
   onUnstageFile,
-  onDiscardFile
+  onDiscardFile,
+  onOpenFile
 }: ChangesListProps) {
   if (files.length === 0) {
     return (
@@ -53,6 +57,7 @@ export function ChangesList({
               onStageFile={onStageFile}
               onUnstageFile={onUnstageFile}
               onDiscardFile={onDiscardFile}
+              onOpenFile={onOpenFile}
             />
           ))}
         </div>
@@ -68,9 +73,11 @@ interface FileItemProps {
   onStageFile?: (path: string) => void
   onUnstageFile?: (path: string) => void
   onDiscardFile?: (path: string) => void
+  /** Open the file itself (or reveal it in Finder) instead of its diff */
+  onOpenFile?: (path: string, reveal: boolean) => void
 }
 
-function FileItem({ file, mode, onFileClick, onStageFile, onUnstageFile, onDiscardFile }: FileItemProps) {
+function FileItem({ file, mode, onFileClick, onStageFile, onUnstageFile, onDiscardFile, onOpenFile }: FileItemProps) {
   const fileName = file.path.split(/[/\\]/).pop() ?? file.path
   const statusLabel = getStatusLabel(file.status)
   const statusColor = getStatusColor(file.status)
@@ -100,6 +107,11 @@ function FileItem({ file, mode, onFileClick, onStageFile, onUnstageFile, onDisca
             <span className="text-red-400">-{file.deletions}</span>
           )}
         </div>
+      )}
+
+      {/* Deleted files have nothing on disk to open */}
+      {onOpenFile && file.status !== 'deleted' && (
+        <FileOpenButtons onOpen={reveal => onOpenFile(file.path, reveal)} />
       )}
 
       {/* Action buttons — visible on hover */}

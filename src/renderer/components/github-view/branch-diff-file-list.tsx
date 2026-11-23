@@ -1,14 +1,17 @@
 import type { GitBranchDiffFile } from '@shared/types'
 import { getStatusColor, getStatusLabel, groupByDir } from '../git-panel/git-file-utils'
+import { FileOpenButtons } from '../git-panel/file-open-buttons'
 
 interface BranchDiffFileListProps {
   files: GitBranchDiffFile[]
   onFileClick: (file: GitBranchDiffFile) => void
   /** Shown when the list is empty */
   emptyText?: string
+  /** Open the file in the working tree (or reveal it in Finder) instead of its diff */
+  onOpenFile?: (path: string, reveal: boolean) => void
 }
 
-export function BranchDiffFileList({ files, onFileClick, emptyText = 'No differences from base branch' }: BranchDiffFileListProps) {
+export function BranchDiffFileList({ files, onFileClick, emptyText = 'No differences from base branch', onOpenFile }: BranchDiffFileListProps) {
   if (files.length === 0) {
     return (
       <div className="px-4 py-2 text-[10px] text-[var(--mc-text-muted)] opacity-50 italic">
@@ -53,6 +56,10 @@ export function BranchDiffFileList({ files, onFileClick, emptyText = 'No differe
                 {file.additions > 0 && <span className="text-green-400">+{file.additions}</span>}
                 {file.deletions > 0 && <span className="text-red-400">-{file.deletions}</span>}
               </div>
+
+              {onOpenFile && file.status !== 'deleted' && (
+                <FileOpenButtons onOpen={reveal => onOpenFile(file.path, reveal)} />
+              )}
             </div>
           ))}
         </div>

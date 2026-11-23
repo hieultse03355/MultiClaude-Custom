@@ -495,6 +495,18 @@ export function registerIpcHandlers(window: BrowserWindow, managers: Managers) {
     return gitManager.getCommitFileDiff(cwd, hash, file, oldFile)
   })
 
+  // Open a repo file with its default app, or reveal it in the file manager
+  safeHandle(IPC_CHANNELS.GIT_OPEN_FILE, async (_, { cwd, file, reveal }: { cwd: string; file: string; reveal?: boolean }) => {
+    const absPath = await gitManager.resolveWorkingFile(cwd, file)
+    if (!absPath) return { success: false, error: `File not found: ${file}` }
+    if (reveal) {
+      shell.showItemInFolder(absPath)
+      return { success: true }
+    }
+    const error = await shell.openPath(absPath)
+    return error ? { success: false, error } : { success: true }
+  })
+
   safeHandle(IPC_CHANNELS.GIT_CONFIG_SET, async (_, config: { userName?: string; userEmail?: string }) => {
     return gitManager.setGitConfig(config)
   })

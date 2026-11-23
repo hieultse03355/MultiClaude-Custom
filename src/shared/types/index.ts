@@ -107,6 +107,8 @@ export interface GitStatus {
   tracking?: string
   /** Commits on this branch not yet on its upstream */
   ahead?: number
+  /** Commits on the upstream not yet on this branch (as of the last fetch) */
+  behind?: number
 }
 
 export interface GitHubAuth {

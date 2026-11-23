@@ -8,6 +8,8 @@ interface HistoryTabProps {
   isLoading?: boolean
   /** Open the diff of one file as changed by one commit */
   onFileClick: (entry: GitLogEntry, file: GitBranchDiffFile) => void
+  /** Open a file in the working tree (or reveal it in Finder) */
+  onOpenFile?: (path: string, reveal: boolean) => void
 }
 
 /** Per-commit changed-file list; commits are immutable so results are cached */
@@ -30,7 +32,7 @@ function formatRelativeDate(dateStr: string): string {
   return date.toLocaleDateString()
 }
 
-export function HistoryTab({ projectPath, entries, isLoading, onFileClick }: HistoryTabProps) {
+export function HistoryTab({ projectPath, entries, isLoading, onFileClick, onOpenFile }: HistoryTabProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [commitFiles, setCommitFiles] = useState<Record<string, CommitFilesState>>({})
   const commitFilesRef = useRef(commitFiles)
@@ -118,6 +120,7 @@ export function HistoryTab({ projectPath, entries, isLoading, onFileClick }: His
                     files={files}
                     onFileClick={file => onFileClick(entry, file)}
                     emptyText="No file changes"
+                    onOpenFile={onOpenFile}
                   />
                 )}
               </div>

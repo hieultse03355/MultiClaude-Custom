@@ -99,6 +99,15 @@ export function RepoRow({ repoPath, isPrimary, onRemove, onStatus }: RepoRowProp
 
         <span className="flex-1" />
 
+        {!!status?.behind && (
+          <span
+            className="text-[10px] font-semibold flex-shrink-0 text-sky-400"
+            title={`${status.behind} new commit(s) on ${status.tracking ?? 'remote'} — pull to update`}
+          >
+            ↓{status.behind}
+          </span>
+        )}
+
         {!!status?.ahead && (
           <span
             className="text-[10px] font-semibold flex-shrink-0 text-sky-400"

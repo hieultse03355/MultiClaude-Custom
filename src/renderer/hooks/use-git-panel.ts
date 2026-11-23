@@ -284,6 +284,17 @@ export function useGitPanel({ projectPath, enabled = true }: UseGitPanelOptions)
     return () => clearInterval(interval)
   }, [refresh, refreshAll, enabled, projectPath])
 
+  // Fetch once when the panel opens so `behind` reflects the remote, not the
+  // last fetch someone happened to run. Silent: offline/no-remote just keeps the old status.
+  useEffect(() => {
+    if (!enabled || !projectPath) return
+    let cancelled = false
+    window.electron.git.fetch(projectPath)
+      .then(result => { if (!cancelled && result.success) void refresh() })
+      .catch(() => { /* keep last known status */ })
+    return () => { cancelled = true }
+  }, [enabled, projectPath, refresh])
+
   return {
     gitStatus,
     files,
